@@ -28,6 +28,9 @@ const ProjectDialog = ({ open, onOpenChange }: ProjectDialogProps) => {
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) throw new Error("No user logged in");
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -41,12 +44,26 @@ const ProjectDialog = ({ open, onOpenChange }: ProjectDialogProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "You must be logged in to create a project",
+        });
+        return;
+      }
+
       const { error } = editingProject
         ? await supabase
             .from("projects")
             .update({ name, description })
             .eq("id", editingProject.id)
-        : await supabase.from("projects").insert({ name, description });
+        : await supabase.from("projects").insert({
+            name,
+            description,
+            user_id: session.session.user.id,
+          });
 
       if (error) throw error;
 

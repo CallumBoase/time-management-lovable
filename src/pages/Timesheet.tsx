@@ -54,16 +54,10 @@ const Timesheet = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Timesheet</h1>
         <div className="space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => setProjectDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setProjectDialogOpen(true)}>
             Manage Projects
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setTaskDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setTaskDialogOpen(true)}>
             Manage Tasks
           </Button>
           <Button onClick={() => setTimeEntryDialogOpen(true)}>
@@ -107,13 +101,13 @@ const Timesheet = () => {
             {timeEntries?.map((entry) => (
               <tr key={entry.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.project?.name}
+                  {entry.project?.name || ""}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.task?.name}
+                  {entry.task?.name || ""}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.description}
+                  {entry.description || ""}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {format(new Date(entry.start_time), "PPp")}
@@ -124,10 +118,10 @@ const Timesheet = () => {
                     : "In Progress"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.duration}
+                  {entry.duration ? String(entry.duration) : ""}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.invoice_number}
+                  {entry.invoice_number || ""}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <Button
@@ -152,16 +146,13 @@ const Timesheet = () => {
         entry={selectedEntry}
         onClose={() => setSelectedEntry(null)}
       />
-      
+
       <ProjectDialog
         open={projectDialogOpen}
         onOpenChange={setProjectDialogOpen}
       />
-      
-      <TaskDialog
-        open={taskDialogOpen}
-        onOpenChange={setTaskDialogOpen}
-      />
+
+      <TaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} />
     </div>
   );
 };
