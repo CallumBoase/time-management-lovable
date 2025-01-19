@@ -108,6 +108,16 @@ const TimeEntryDialog = ({
 
   const onSubmit = async (values: any) => {
     try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "You must be logged in to create a time entry",
+        });
+        return;
+      }
+
       const { error } = entry
         ? await supabase
             .from("time_entries")
@@ -121,6 +131,7 @@ const TimeEntryDialog = ({
             .eq("id", entry.id)
         : await supabase.from("time_entries").insert({
             ...values,
+            user_id: session.session.user.id,
             start_time: new Date(values.start_time).toISOString(),
             end_time: values.end_time
               ? new Date(values.end_time).toISOString()
