@@ -37,15 +37,17 @@ interface TimeEntryFormValues {
 }
 
 const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
+  const defaultValues: TimeEntryFormValues = {
+    project_id: entry?.project_id || "",
+    task_id: entry?.task_id || "",
+    description: entry?.description || "",
+    start_time: entry?.start_time ? new Date(entry.start_time).toISOString().slice(0, 16) : "",
+    end_time: entry?.end_time ? new Date(entry.end_time).toISOString().slice(0, 16) : "",
+    invoice_number: entry?.invoice_number || "",
+  };
+
   const form = useForm<TimeEntryFormValues>({
-    defaultValues: {
-      project_id: entry?.project_id || "",
-      task_id: entry?.task_id || "",
-      description: entry?.description || "",
-      start_time: entry?.start_time ? new Date(entry.start_time).toISOString().slice(0, 16) : "",
-      end_time: entry?.end_time ? new Date(entry.end_time).toISOString().slice(0, 16) : "",
-      invoice_number: entry?.invoice_number || "",
-    },
+    defaultValues,
   });
 
   const { data: projects } = useQuery<Project[]>({
