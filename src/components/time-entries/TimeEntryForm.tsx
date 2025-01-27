@@ -27,8 +27,10 @@ interface TimeEntryFormProps {
   onCancel: () => void;
 }
 
+type TimeEntryFormValues = Omit<TimeEntry, 'id' | 'user_id'>;
+
 const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
-  const form = useForm<Partial<TimeEntry>>({
+  const form = useForm<TimeEntryFormValues>({
     defaultValues: {
       project_id: entry?.project_id || "",
       task_id: entry?.task_id || "",
