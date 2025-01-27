@@ -10,18 +10,33 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthenticated(!!session);
-      setLoading(false);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Auth error:", error);
+          setAuthenticated(false);
+        } else {
+          setAuthenticated(!!session);
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+        setAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthenticated(!!session);
-      setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setAuthenticated(false);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setAuthenticated(true);
+        setLoading(false);
+      }
     });
 
     checkAuth();
-
     return () => subscription.unsubscribe();
   }, []);
 

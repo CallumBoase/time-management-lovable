@@ -19,16 +19,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { TimeEntry } from "./types";
+import { TimeEntry, Project, Task } from "./types";
 
 interface TimeEntryFormProps {
   entry?: TimeEntry;
-  onSubmit: (values: any) => Promise<void>;
+  onSubmit: (values: Partial<TimeEntry>) => Promise<void>;
   onCancel: () => void;
 }
 
 const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
-  const form = useForm({
+  const form = useForm<Partial<TimeEntry>>({
     defaultValues: {
       project_id: entry?.project_id || "",
       task_id: entry?.task_id || "",
@@ -39,7 +39,7 @@ const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
     },
   });
 
-  const { data: projects } = useQuery({
+  const { data: projects } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -52,7 +52,7 @@ const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
     },
   });
 
-  const { data: tasks } = useQuery({
+  const { data: tasks } = useQuery<Task[]>({
     queryKey: ["tasks", form.watch("project_id")],
     queryFn: async () => {
       const { data, error } = await supabase
