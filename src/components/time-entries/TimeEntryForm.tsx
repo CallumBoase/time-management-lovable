@@ -23,11 +23,18 @@ import { TimeEntry, Project, Task } from "./types";
 
 interface TimeEntryFormProps {
   entry?: TimeEntry;
-  onSubmit: (values: Partial<TimeEntry>) => Promise<void>;
+  onSubmit: (values: TimeEntryFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
-type TimeEntryFormValues = Omit<TimeEntry, 'id' | 'user_id'>;
+type TimeEntryFormValues = {
+  project_id: string;
+  task_id: string;
+  description?: string;
+  start_time: string;
+  end_time?: string;
+  invoice_number?: string;
+};
 
 const TimeEntryForm = ({ entry, onSubmit, onCancel }: TimeEntryFormProps) => {
   const form = useForm<TimeEntryFormValues>({
