@@ -11,19 +11,21 @@ interface TaskSelectProps {
 }
 
 const TaskSelect = ({ form }: TaskSelectProps) => {
+  const projectId = form.watch("project_id");
+
   const { data: tasks } = useQuery<Task[]>({
-    queryKey: ["tasks", form.watch("project_id")],
+    queryKey: ["tasks", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
-        .eq("project_id", form.watch("project_id"))
+        .eq("project_id", projectId)
         .order("name");
 
       if (error) throw error;
       return data;
     },
-    enabled: !!form.watch("project_id"),
+    enabled: !!projectId,
   });
 
   return (
@@ -36,7 +38,7 @@ const TaskSelect = ({ form }: TaskSelectProps) => {
           <Select
             onValueChange={field.onChange}
             defaultValue={field.value}
-            disabled={!form.watch("project_id")}
+            disabled={!projectId}
           >
             <FormControl>
               <SelectTrigger>
