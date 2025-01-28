@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import TimeEntryDialog from "@/components/TimeEntryDialog";
 import ProjectDialog from "@/components/ProjectDialog";
 import TaskDialog from "@/components/TaskDialog";
+import debounce from "lodash/debounce";
 import {
   Table,
   TableBody,
@@ -36,7 +37,8 @@ const Timesheet = () => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [localSearchQuery, setLocalSearchQuery] = useState(""); // Local state for input
+  const [searchQuery, setSearchQuery] = useState(""); // Debounced state for query
   const [sortColumn, setSortColumn] = useState("start_time");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
@@ -46,7 +48,21 @@ const Timesheet = () => {
     value: string;
   } | null>(null);
 
-  // Fetch projects for filter dropdown
+  // Debounced search function
+  const debouncedSetSearchQuery = useCallback(
+    debounce((value: string) => {
+      setSearchQuery(value);
+    }, 300),
+    []
+  );
+
+  // Handle input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalSearchQuery(value); // Update local state immediately
+    debouncedSetSearchQuery(value); // Debounce the actual search
+  };
+
   const { data: projects } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -161,8 +177,8 @@ const Timesheet = () => {
       <div className="flex gap-4 mb-4">
         <Input
           placeholder="Search entries..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={localSearchQuery}
+          onChange={handleSearchChange}
           className="max-w-sm"
         />
         <Select value={projectFilter || "all"} onValueChange={(value) => setProjectFilter(value === "all" ? null : value)}>
