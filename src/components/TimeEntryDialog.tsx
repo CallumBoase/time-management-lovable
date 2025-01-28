@@ -32,20 +32,22 @@ const TimeEntryDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] h-[90vh] mt-[5vh]">
         <DialogHeader>
           <DialogTitle>
             {entry ? "Edit Time Entry" : "New Time Entry"}
           </DialogTitle>
         </DialogHeader>
-        <TimeEntryForm
-          entry={entry}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            onOpenChange(false);
-            onClose();
-          }}
-        />
+        <div className="overflow-y-auto flex-1 -mx-6 px-6">
+          <TimeEntryForm
+            entry={entry}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              onOpenChange(false);
+              onClose();
+            }}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
