@@ -2,12 +2,32 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import TimeEntryDialog from "@/components/TimeEntryDialog";
 import ProjectDialog from "@/components/ProjectDialog";
 import TaskDialog from "@/components/TaskDialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const PAGE_SIZE = 10;
 
 const Timesheet = () => {
   const { toast } = useToast();
@@ -15,18 +35,58 @@ const Timesheet = () => {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortColumn, setSortColumn] = useState("start_time");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<{
+    id: string;
+    field: string;
+    value: string;
+  } | null>(null);
 
-  const { data: timeEntries, isLoading: isLoadingEntries } = useQuery({
-    queryKey: ["timeEntries"],
+  // Fetch projects for filter dropdown
+  const { data: projects } = useQuery({
+    queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
+        .from("projects")
+        .select("id, name");
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: timeEntries, isLoading: isLoadingEntries } = useQuery({
+    queryKey: ["timeEntries", page, searchQuery, sortColumn, sortOrder, projectFilter],
+    queryFn: async () => {
+      let query = supabase
         .from("time_entries")
         .select(`
           *,
           project:projects(name),
           task:tasks(name)
-        `)
-        .order("start_time", { ascending: false });
+        `, { count: 'exact' });
+
+      // Apply search
+      if (searchQuery) {
+        query = query.or(`description.ilike.%${searchQuery}%,invoice_number.ilike.%${searchQuery}%`);
+      }
+
+      // Apply project filter
+      if (projectFilter) {
+        query = query.eq('project_id', projectFilter);
+      }
+
+      // Apply sorting
+      query = query.order(sortColumn, { ascending: sortOrder === 'asc' });
+
+      // Apply pagination
+      query = query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+      const { data, error, count } = await query;
 
       if (error) {
         toast({
@@ -34,12 +94,41 @@ const Timesheet = () => {
           title: "Error loading time entries",
           description: error.message,
         });
-        return [];
+        return { data: [], count: 0 };
       }
 
-      return data;
+      return { data, count };
     },
   });
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleCellEdit = async (id: string, field: string, value: string) => {
+    const { error } = await supabase
+      .from("time_entries")
+      .update({ [field]: value })
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error updating entry",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Entry updated",
+        description: "The time entry has been updated successfully.",
+      });
+    }
+  };
 
   if (isLoadingEntries) {
     return (
@@ -48,6 +137,8 @@ const Timesheet = () => {
       </div>
     );
   }
+
+  const totalPages = timeEntries?.count ? Math.ceil(timeEntries.count / PAGE_SIZE) : 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -67,63 +158,117 @@ const Timesheet = () => {
         </div>
       </div>
 
+      <div className="flex gap-4 mb-4">
+        <Input
+          placeholder="Search entries..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-sm"
+        />
+        <Select value={projectFilter || ""} onValueChange={(value) => setProjectFilter(value || null)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Projects</SelectItem>
+            {projects?.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Project
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Task
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Start Time
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                End Time
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Duration
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Invoice #
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {timeEntries?.map((entry) => (
-              <tr key={entry.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.project?.name || ""}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.task?.name || ""}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.description || ""}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {format(new Date(entry.start_time), "PPp")}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.end_time
-                    ? format(new Date(entry.end_time), "PPp")
-                    : "In Progress"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.duration ? String(entry.duration) : ""}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.invoice_number || ""}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead onClick={() => handleSort("project_id")} className="cursor-pointer">
+                Project {sortColumn === "project_id" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("task_id")} className="cursor-pointer">
+                Task {sortColumn === "task_id" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("description")} className="cursor-pointer">
+                Description {sortColumn === "description" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("start_time")} className="cursor-pointer">
+                Start Time {sortColumn === "start_time" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("end_time")} className="cursor-pointer">
+                End Time {sortColumn === "end_time" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("duration")} className="cursor-pointer">
+                Duration {sortColumn === "duration" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead onClick={() => handleSort("invoice_number")} className="cursor-pointer">
+                Invoice # {sortColumn === "invoice_number" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {timeEntries?.data.map((entry) => (
+              <TableRow key={entry.id}>
+                <TableCell>{entry.project?.name || ""}</TableCell>
+                <TableCell>{entry.task?.name || ""}</TableCell>
+                <TableCell
+                  onClick={() => setEditingCell({ id: entry.id, field: "description", value: entry.description || "" })}
+                >
+                  {editingCell?.id === entry.id && editingCell?.field === "description" ? (
+                    <Input
+                      value={editingCell.value}
+                      onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+                      onBlur={() => {
+                        handleCellEdit(entry.id, "description", editingCell.value);
+                        setEditingCell(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleCellEdit(entry.id, "description", editingCell.value);
+                          setEditingCell(null);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="cursor-pointer hover:bg-gray-100 p-1 rounded">
+                      {entry.description || ""}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>{format(new Date(entry.start_time), "PPp")}</TableCell>
+                <TableCell>
+                  {entry.end_time ? format(new Date(entry.end_time), "PPp") : "In Progress"}
+                </TableCell>
+                <TableCell>{entry.duration ? String(entry.duration) : ""}</TableCell>
+                <TableCell
+                  onClick={() => setEditingCell({ id: entry.id, field: "invoice_number", value: entry.invoice_number || "" })}
+                >
+                  {editingCell?.id === entry.id && editingCell?.field === "invoice_number" ? (
+                    <Input
+                      value={editingCell.value}
+                      onChange={(e) => setEditingCell({ ...editingCell, value: e.target.value })}
+                      onBlur={() => {
+                        handleCellEdit(entry.id, "invoice_number", editingCell.value);
+                        setEditingCell(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleCellEdit(entry.id, "invoice_number", editingCell.value);
+                          setEditingCell(null);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="cursor-pointer hover:bg-gray-100 p-1 rounded">
+                      {entry.invoice_number || ""}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -133,12 +278,41 @@ const Timesheet = () => {
                   >
                     Edit
                   </Button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setPage(page > 1 ? page - 1 : 1)}
+                className={page === 1 ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <PaginationItem key={pageNum}>
+                <PaginationLink
+                  onClick={() => setPage(pageNum)}
+                  isActive={page === pageNum}
+                >
+                  {pageNum}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setPage(page < totalPages ? page + 1 : totalPages)}
+                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
 
       <TimeEntryDialog
         open={timeEntryDialogOpen}
@@ -152,7 +326,10 @@ const Timesheet = () => {
         onOpenChange={setProjectDialogOpen}
       />
 
-      <TaskDialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen} />
+      <TaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+      />
     </div>
   );
 };
