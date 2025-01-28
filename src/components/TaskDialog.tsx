@@ -124,102 +124,100 @@ const TaskDialog = ({ open, onOpenChange }: TaskDialogProps) => {
           <DialogTitle>Manage Tasks</DialogTitle>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 -mx-6 px-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Select
-                value={projectId}
-                onValueChange={setProjectId}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Select
+              value={projectId}
+              onValueChange={setProjectId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects?.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Task name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <Textarea
+              placeholder="Task description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end">
+            {editingTask && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mr-2"
+                onClick={() => {
+                  setEditingTask(null);
+                  setName("");
+                  setDescription("");
+                  setProjectId("");
+                }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Task name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-              <Textarea
-                placeholder="Task description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-end">
-              {editingTask && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mr-2"
-                  onClick={() => {
-                    setEditingTask(null);
-                    setName("");
-                    setDescription("");
-                    setProjectId("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button type="submit">
-                <Plus className="mr-2 h-4 w-4" />
-                {editingTask ? "Update Task" : "Add Task"}
+                Cancel
               </Button>
-            </div>
-          </form>
+            )}
+            <Button type="submit">
+              <Plus className="mr-2 h-4 w-4" />
+              {editingTask ? "Update Task" : "Add Task"}
+            </Button>
+          </div>
+        </form>
 
-          <div className="mt-6">
-            <h3 className="font-medium mb-4">Existing Tasks</h3>
-            <div className="space-y-2">
-              {tasks?.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
-                >
-                  <div>
-                    <h4 className="font-medium">{task.name}</h4>
+        <div className="mt-6">
+          <h3 className="font-medium mb-4">Existing Tasks</h3>
+          <div className="space-y-2">
+            {tasks?.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+              >
+                <div>
+                  <h4 className="font-medium">{task.name}</h4>
+                  <p className="text-sm text-gray-500">
+                    Project: {task.project.name}
+                  </p>
+                  {task.description && (
                     <p className="text-sm text-gray-500">
-                      Project: {task.project.name}
+                      {task.description}
                     </p>
-                    {task.description && (
-                      <p className="text-sm text-gray-500">
-                        {task.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setEditingTask(task);
-                        setName(task.name);
-                        setDescription(task.description || "");
-                        setProjectId(task.project_id);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(task.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setEditingTask(task);
+                      setName(task.name);
+                      setDescription(task.description || "");
+                      setProjectId(task.project_id);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(task.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </DialogContent>
