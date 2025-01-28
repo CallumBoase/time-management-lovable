@@ -32,7 +32,7 @@ const TimeEntryDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] h-[90vh] mt-[5vh]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {entry ? "Edit Time Entry" : "New Time Entry"}

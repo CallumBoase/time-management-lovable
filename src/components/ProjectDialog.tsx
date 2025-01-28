@@ -104,7 +104,7 @@ const ProjectDialog = ({ open, onOpenChange }: ProjectDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] h-[90vh] mt-[5vh]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Manage Projects</DialogTitle>
         </DialogHeader>
