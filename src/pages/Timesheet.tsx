@@ -40,6 +40,8 @@ const Timesheet = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false);
+  const [projectSelectOpen, setProjectSelectOpen] = useState(false);
+  const [taskSelectOpen, setTaskSelectOpen] = useState(false);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -305,23 +307,25 @@ const Timesheet = () => {
             {timeEntries?.data.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell
-                  onClick={() =>
+                  onClick={() => {
                     setEditingCell({
                       id: entry.id,
                       field: "project_id",
                       value: entry.project_id || "",
                     })
-                  }
+                    setProjectSelectOpen(true)
+                  }}
                 >
                   {editingCell?.id === entry.id &&
                   editingCell?.field === "project_id" ? (
                     <Select
+                      open={projectSelectOpen}
+                      onOpenChange={setProjectSelectOpen}
                       value={editingCell.value}
                       onValueChange={(value) => {
                         handleCellEdit(entry.id, "project_id", value);
                         setEditingCell(null);
                       }}
-                      // autoFocus
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select project" />
@@ -342,17 +346,20 @@ const Timesheet = () => {
                 </TableCell>
 
                 <TableCell
-                  onClick={() =>
+                  onClick={() => {
                     setEditingCell({
                       id: entry.id,
                       field: "task_id",
                       value: entry.task_id || "",
                     })
-                  }
+                    setTaskSelectOpen(true)
+                  }}
                 >
                   {editingCell?.id === entry.id &&
                   editingCell?.field === "task_id" ? (
                     <Select
+                      open={taskSelectOpen}
+                      onOpenChange={setTaskSelectOpen}
                       value={editingCell.value}
                       onValueChange={(value) => {
                         handleCellEdit(entry.id, "task_id", value);
